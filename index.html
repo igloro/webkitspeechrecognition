@@ -1,0 +1,197 @@
+<script src="https://code.jquery.com/jquery-3.5.1.min.js" integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
+
+<style>
+.done
+{
+	color: white;
+	background: #00c900;
+}
+
+.baddone
+{
+	color: white;
+	background: red;
+}
+
+.ignore
+{
+	color: white;
+	background: brown;
+}
+
+.underline
+{
+	text-decoration: underline;
+}
+
+#text_to_read	
+{
+	font-size: 30px;
+	width: 80%;
+	border: 1px solid #373737;
+	margin: 0 auto;
+	padding: 10px;
+	border-radius: 5px;
+	line-height: 53px;
+}
+
+#last_word
+{
+	text-align: center;
+    margin-top: 10px;
+    font-size: 30px;
+    color: #CCC;
+    text-align: center;
+}
+</style>
+
+
+
+<div style="text-align: center; margin-top: 30px; margin-bottom: 30px;">
+	
+	<button id="startRecognition">Start</button>
+	<button id="stopRecognition">End</button>
+	<button id="ignor">Ignore</button>
+</div>
+
+
+<!--Prašom! kraštuose? Norite atostogų šiltuose kraštuose? Prašom! Kelionių organizatoriai ir toliau pardavinėja keliones į lietuvių pamėgtus užsienio kurortus ir keliauti siūlo jau pirmą dieną -->
+<div id="text_to_read">
+	Visi žino pelytę, kuri virę savo vaikams košelę. Virė virė ir išvirė. Davė peliukams. O vienam pritrūko. Peliukas pradėjo verkti.
+</div>
+
+
+<div id="last_word"></div>
+
+
+<script>	
+
+	var text_to_read;
+
+	recognition = new webkitSpeechRecognition();
+	recognition.lang = 'lt-LT';
+	recognition.continuous = true;
+	recognition.interimResults = true;
+
+	function getReadyText()
+	{
+		text_to_read = $("#text_to_read").text().trim();
+		var words = text_to_read.split(" ");
+
+		$("#text_to_read").html("");
+		$.each(words, function(key, value)
+		{
+			if(value == "–" || value == ")" || value == "(" || value.length < 3)
+			{
+				$("#text_to_read").append("<span>" + value + "</span> ");
+			}
+			else $("#text_to_read").append("<span class='un'>" + value + "</span> ");
+		});
+	}
+	getReadyText();
+
+	var tries = 0;
+	var words_c = 0;
+
+	$("#ignor").click(function()
+	{
+		$("#text_to_read .un").first().removeClass("un underline").addClass("ignore");
+		tries = 0;
+		$("#text_to_read .un").first().addClass("underline");
+	});
+
+	function restartRecording()
+	{
+		recognition.stop();
+		setTimeout(function() {
+			recognition.start();
+			$("#text_to_read .un").first().addClass("underline");
+		}, 500);
+		
+	}
+
+	function checkNextWord(word)
+	{
+		$("#last_word").html(word);
+
+		var first_word = $("#text_to_read .un").first().text().toLowerCase()
+
+		word = word.replace("ą", "a");
+		word = word.replace("č", "c");
+		word = word.replace("ę", "e");
+		word = word.replace("ė", "e");
+		word = word.replace("į", "i");
+		word = word.replace("š", "s");
+		word = word.replace("ų", "u");
+		word = word.replace("ū", "u");
+
+		first_word = first_word.replace("ą", "a");
+		first_word = first_word.replace("č", "c");
+		first_word = first_word.replace("ę", "e");
+		first_word = first_word.replace("ė", "e");
+		first_word = first_word.replace("į", "i");
+		first_word = first_word.replace("š", "s");
+		first_word = first_word.replace("ų", "u");
+		first_word = first_word.replace("ū", "u");
+
+		word = word.replace(/[\W!]/gi, '');
+		first_word = first_word.replace(/[\W!]/gi, '');
+
+		if(first_word == word)
+		{
+			$("#text_to_read .un").first().removeClass("un underline").addClass("done");
+			tries = 0;
+			words_c = words_c + 1;
+
+			$("#text_to_read .un").first().addClass("underline");
+			
+
+			if(words_c > 3) 
+			{
+				words_c = 0;
+				restartRecording();
+			}
+		}
+		else if(tries > 10)
+		{
+			$("#text_to_read .un").first().removeClass("un underline").addClass("baddone");
+			tries = 0;
+			words_c = words_c + 1;
+
+			$("#text_to_read .un").first().addClass("underline");
+			
+
+			if(words_c > 3) 
+			{
+				words_c = 0;
+				restartRecording();
+			}
+		}
+		else 
+		{
+			tries = tries + 1;
+			//console.log(first_word + " != " + word);
+		}
+	}
+
+	$(function () {
+		recognition.onresult = function (event) {
+
+			var txtRec = '';
+			for (var i = event.resultIndex; i < event.results.length; ++i) {
+				txtRec = event.results[i][0].transcript;
+			}
+			txtRec = txtRec.trim().toLowerCase()
+			checkNextWord(txtRec);
+		};
+
+
+		$('#startRecognition').click(function () {
+			restartRecording();
+		});
+
+		$('#stopRecognition').click(function () {
+			recognition.stop();
+		});
+	});
+</script>
